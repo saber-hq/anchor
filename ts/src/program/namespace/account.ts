@@ -17,6 +17,7 @@ import Coder, {
 } from "../../coder";
 import { Subscription, Address, translateAddress } from "../common";
 import { getProvider } from "../../";
+import * as pubkeyUtil from "../../utils/pubkey";
 import { IdlTypes, TypeDef } from "./types";
 
 export default class AccountFactory {
@@ -242,9 +243,10 @@ export class AccountClient<
       fromPubkey: this._provider.wallet.publicKey,
       newAccountPubkey: signer.publicKey,
       space: sizeOverride ?? size,
-      lamports: await this._provider.connection.getMinimumBalanceForRentExemption(
-        sizeOverride ?? size
-      ),
+      lamports:
+        await this._provider.connection.getMinimumBalanceForRentExemption(
+          sizeOverride ?? size
+        ),
       programId: this._programId,
     });
   }
@@ -253,7 +255,7 @@ export class AccountClient<
    * Function returning the associated account. Args are keys to associate.
    * Order matters.
    */
-  async associated(...args: PublicKey[]): Promise<T> {
+  async associated(...args: Array<PublicKey | Buffer>): Promise<T> {
     const addr = await this.associatedAddress(...args);
     return await this.fetch(addr);
   }
@@ -262,13 +264,10 @@ export class AccountClient<
    * Function returning the associated address. Args are keys to associate.
    * Order matters.
    */
-  async associatedAddress(...args: PublicKey[]): Promise<PublicKey> {
-    let seeds = [Buffer.from([97, 110, 99, 104, 111, 114])]; // b"anchor".
-    args.forEach((arg) => {
-      seeds.push(translateAddress(arg).toBuffer());
-    });
-    const [assoc] = await PublicKey.findProgramAddress(seeds, this._programId);
-    return assoc;
+  async associatedAddress(
+    ...args: Array<PublicKey | Buffer>
+  ): Promise<PublicKey> {
+    return await pubkeyUtil.associated(this._programId, ...args);
   }
 }
 
